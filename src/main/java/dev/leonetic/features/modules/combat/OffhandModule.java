@@ -1,7 +1,7 @@
 package dev.leonetic.features.modules.combat;
 
 import dev.leonetic.Homovore;
-import dev.leonetic.event.impl.entity.player.TickEvent;
+import dev.leonetic.event.impl.entity.player.PreTickEvent;
 import dev.leonetic.event.impl.network.PacketEvent;
 import dev.leonetic.event.system.Subscribe;
 import dev.leonetic.features.modules.Module;
@@ -71,7 +71,7 @@ public class OffhandModule extends Module {
     }
 
     @Subscribe
-    private void onTick(TickEvent event) {
+    private void onTick(PreTickEvent event) {
         if (nullCheck()) { eatingGappleLatch = false; eatGraceTicks = 0; return; }
 
         updateEatingGappleLatch();

@@ -19,6 +19,8 @@ public class SwapManager extends Feature {
 
     private int serverSlot = -1;
 
+    private int homeSlot = -1;
+
     private boolean wasUsing = false;
     private Item useItem = null;
     private InteractionHand useHand = null;
@@ -69,7 +71,17 @@ public class SwapManager extends Feature {
 
     @Subscribe
     private void onTick(TickEvent event) {
-        if (mc.player == null) { wasUsing = false; return; }
+        if (mc.player == null) { wasUsing = false; homeSlot = -1; return; }
+
+        if (active == null && homeSlot != -1) {
+            if (InventoryUtil.selected() != homeSlot) {
+                mc.player.getInventory().setSelectedSlot(homeSlot);
+                mc.gameMode.ensureHasSentCarriedItem();
+                log("restore home -> " + homeSlot);
+            }
+            homeSlot = -1;
+        }
+
         boolean using = mc.player.isUsingItem();
         if (using && !wasUsing) {
             ItemStack stack = mc.player.getUseItem();
@@ -206,11 +218,11 @@ public class SwapManager extends Feature {
                 return null;
             }
             log("acquire " + id + "/" + priority + " preempts " + active.id + "/" + active.priority);
-            doRestore(active);
             active.released = true;
         } else {
             log("acquire " + id + "/" + priority);
         }
+        if (homeSlot == -1) homeSlot = InventoryUtil.selected();
         SwapHandle h = new SwapHandle(id, priority, InventoryUtil.selected());
         active = h;
         return h;
@@ -221,20 +233,11 @@ public class SwapManager extends Feature {
         h.released = true;
         if (active != h) return;
         log("release " + h.id + "/" + h.priority);
-        doRestore(h);
         active = null;
     }
 
     public boolean isBlocked(int priority) {
         return active != null && active.priority >= priority;
-    }
-
-    private void doRestore(SwapHandle h) {
-        if (mc.player == null) return;
-        if (InventoryUtil.selected() != h.originalSlot) {
-            mc.player.getInventory().setSelectedSlot(h.originalSlot);
-            mc.gameMode.ensureHasSentCarriedItem();
-        }
     }
 
     public static final class SwapHandle {

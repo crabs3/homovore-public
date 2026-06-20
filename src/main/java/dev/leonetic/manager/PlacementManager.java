@@ -499,7 +499,7 @@ public class PlacementManager extends Feature {
         BlockHitResult hit = new BlockHitResult(hitVec, clickFace, base, false);
 
         var conn = mc.getConnection();
-        int originalSlot = InventoryUtil.selected();
+        int originalSlot = Homovore.swapManager.serverSlot();
         boolean needSlotSwap = hotbarSlot != originalSlot;
 
         if (needSlotSwap) {

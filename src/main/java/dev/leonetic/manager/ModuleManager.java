@@ -98,6 +98,7 @@ public class ModuleManager implements Jsonable, Util {
         register(new NukerModule());
         register(new ScaffoldModule());
         register(new ReplenishModule());
+        register(new InstantRekitModule());
 
         LOGGER.info("Registered {} modules", modules.size());
 

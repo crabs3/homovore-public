@@ -41,6 +41,7 @@ public class CommandManager extends Feature implements Jsonable {
         register(new ToggleCommand());
         register(new ActiveModulesCommand());
         register(new FunnyCommand());
+        register(new SaveKitCommand());
 
         LOGGER.info("Registered {} commands", commandList.size());
         Homovore.configManager.addConfig(this);

@@ -85,6 +85,7 @@ public class AutoCrystalModule extends Module {
     private final Setting<Double>  basePlaceTargetRange = num("BasePlaceEnemyRange", 7.0, 0.1, 15.0).setPage("BasePlace");
     private final Setting<Double>  basePlaceMinDamage = num("BasePlaceMinDamage", 5.0, 0.0, 36.0).setPage("BasePlace");
     private final Setting<Boolean> debug         = bool("Debug", false).setPage("Extra");
+    private final Setting<Boolean> packetLog     = bool("PacketLog", false).setPage("Extra");
 
     private static final double  PLACE_RANGE    = 5.14;
     private static final double  BASE_PLACE_RANGE = 5.154;
@@ -105,6 +106,15 @@ public class AutoCrystalModule extends Module {
 
     private float lastBestDamage    = 0;
     private SwapManager.SwapHandle pendingSwapHandle = null;
+
+    private final java.util.HashMap<String, int[]> diagSendCounts = new java.util.HashMap<>();
+    private long diagWindowStart  = 0L;
+    private int  diagWindowSends  = 0;
+    private int  diagPeakWindow   = 0;
+    private long diagLifetimeSends = 0L;
+    private long diagLastTickSends = 0L;
+    private int  diagPeakTickSends = 0;
+    private int  diagPlaceAttempt, diagPlaceSent, diagBreakSent, diagInstaBreak;
 
     private double lastCalcMs = 0;
 
@@ -144,6 +154,7 @@ public class AutoCrystalModule extends Module {
         lastCalcMs = 0;
         lastReactorPlaceTick = -1;
         pendingSwapHandle = null;
+        resetDiag();
         Homovore.placementManager.addListener(placementListener);
     }
 
@@ -157,6 +168,7 @@ public class AutoCrystalModule extends Module {
         crystalPlaces.clear();
         deadIds.clear();
         lastBestDamage = 0;
+        resetDiag();
     }
 
     @Subscribe
@@ -174,6 +186,53 @@ public class AutoCrystalModule extends Module {
         if (event.getPacket() instanceof ClientboundAddEntityPacket pkt) {
             onCrystalSpawn(pkt);
         }
+    }
+
+    @Subscribe
+    private void onPacketSendDiag(PacketEvent.Send event) {
+        if (!packetLog.getValue()) return;
+        diagSendCounts.computeIfAbsent(event.getPacket().getClass().getSimpleName(), k -> new int[1])[0]++;
+        diagWindowSends++;
+        diagLifetimeSends++;
+        long now = System.currentTimeMillis();
+        if (diagWindowStart == 0L) diagWindowStart = now;
+        if (now - diagWindowStart >= 1000L) flushDiag(now);
+    }
+
+    @Subscribe(priority = 100)
+    private void onDiagTickBoundary(PreTickEvent event) {
+        if (!packetLog.getValue()) return;
+        int tickDelta = (int) (diagLifetimeSends - diagLastTickSends);
+        diagLastTickSends = diagLifetimeSends;
+        if (tickDelta > diagPeakTickSends) diagPeakTickSends = tickDelta;
+    }
+
+    private void flushDiag(long now) {
+        if (diagWindowSends > diagPeakWindow) diagPeakWindow = diagWindowSends;
+        StringBuilder breakdown = new StringBuilder();
+        diagSendCounts.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue()[0], a.getValue()[0]))
+                .forEach(e -> breakdown.append(e.getKey()).append('=').append(e.getValue()[0]).append(' '));
+        Homovore.LOGGER.info(
+                "[ACDiag] {}ms sends={} peakTick={} peakSec={} | place att/sent={}/{} break={} insta={} | {}",
+                now - diagWindowStart, diagWindowSends, diagPeakTickSends, diagPeakWindow,
+                diagPlaceAttempt, diagPlaceSent, diagBreakSent, diagInstaBreak, breakdown.toString().trim());
+        diagSendCounts.clear();
+        diagWindowSends = 0;
+        diagPeakTickSends = 0;
+        diagPlaceAttempt = diagPlaceSent = diagBreakSent = diagInstaBreak = 0;
+        diagWindowStart = now;
+    }
+
+    private void resetDiag() {
+        diagSendCounts.clear();
+        diagWindowStart = 0L;
+        diagWindowSends = 0;
+        diagPeakWindow = 0;
+        diagLifetimeSends = 0L;
+        diagLastTickSends = 0L;
+        diagPeakTickSends = 0;
+        diagPlaceAttempt = diagPlaceSent = diagBreakSent = diagInstaBreak = 0;
     }
 
     private void onCrystalSpawn(ClientboundAddEntityPacket pkt) {
@@ -207,6 +266,7 @@ public class AutoCrystalModule extends Module {
         float serverPitch = Homovore.rotationManager.getServerPitch();
         if (!canBreakCrystal(crystal, serverYaw, serverPitch)) return;
 
+        diagInstaBreak++;
         mc.player.connection.send(
                 ServerboundInteractPacket.createAttackPacket(crystal, mc.player.isShiftKeyDown()));
         mc.player.connection.send(new ServerboundSwingPacket(InteractionHand.MAIN_HAND));
@@ -515,6 +575,7 @@ public class AutoCrystalModule extends Module {
         Homovore.rotationManager.submit(new RotationRequest(
             "AutoCrystal_break", 60, angles[0], angles[1], RotationRequest.Mode.SILENT
         ));
+        diagBreakSent++;
         mc.gameMode.attack(mc.player, crystal);
     }
 
@@ -856,10 +917,11 @@ public class AutoCrystalModule extends Module {
             acquiredNow = true;
         }
 
+        diagPlaceAttempt++;
         boolean sent = Homovore.placementManager.placeCrystal(base, slot, trustBase);
 
         if (sent) {
-
+            diagPlaceSent++;
             crystalPlaces.put(base.above().asLong(), System.currentTimeMillis());
             if (handle != null) pendingSwapHandle = handle;
         } else if (acquiredNow) {
