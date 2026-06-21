@@ -40,7 +40,6 @@ public class ClickGuiModule extends Module {
 
     public Setting<Boolean> clickGuiFont = bool("ClickGUI Font", false);
     public Setting<Boolean> hudFont = bool("HUD Font", false);
-    public Setting<Boolean> minecraftFont = bool("Minecraft Font", false);
     public Setting<String> fontName = str("Font Name", "");
 
     private static final Color CAT_COMBAT   = new Color(196,  88,  90);
@@ -110,7 +109,7 @@ public class ClickGuiModule extends Module {
         rainbowBrightness.setVisibility(v -> theme.getValue() == Theme.RAINBOW);
         rainbowSaturation.setVisibility(v -> theme.getValue() == Theme.RAINBOW);
         customColor.setVisibility(v -> theme.getValue() == Theme.CUSTOM);
-        fontName.setVisibility(v -> clickGuiFont.getValue() || hudFont.getValue() || minecraftFont.getValue());
+        fontName.setVisibility(v -> clickGuiFont.getValue() || hudFont.getValue());
         INSTANCE = this;
     }
 
@@ -123,7 +122,6 @@ public class ClickGuiModule extends Module {
             }
             if (event.getSetting().equals(this.clickGuiFont)
                     || event.getSetting().equals(this.hudFont)
-                    || event.getSetting().equals(this.minecraftFont)
                     || event.getSetting().equals(this.fontName)) {
                 dev.leonetic.util.render.font.Fonts.markDirty();
             }

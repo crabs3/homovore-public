@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import dev.leonetic.Homovore;
 import dev.leonetic.manager.RotationManager;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -54,5 +55,13 @@ public class MixinLivingEntityTravel {
     private boolean homovore$spoofing() {
         RotationManager rm = Homovore.rotationManager;
         return rm != null && rm.isMoveFixEnabled() && rm.isRotating();
+    }
+
+    @ModifyExpressionValue(
+            method = "handleRelativeFrictionAndCalculateMovement",
+            at = @At(value = "FIELD", target = "Lnet/minecraft/world/entity/LivingEntity;horizontalCollision:Z"))
+    private boolean homovore$noScaffoldClimb(boolean original) {
+        if ((Object) this != mc.player || !original) return original;
+        return !((LivingEntity) (Object) this).getInBlockState().is(Blocks.SCAFFOLDING);
     }
 }

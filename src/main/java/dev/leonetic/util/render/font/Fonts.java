@@ -28,8 +28,7 @@ public final class Fonts {
 
     private static boolean clickGuiOn() { ClickGuiModule c = cfg(); return c != null && c.clickGuiFont.getValue(); }
     private static boolean hudOn()      { ClickGuiModule c = cfg(); return c != null && c.hudFont.getValue(); }
-    private static boolean globalOn()   { ClickGuiModule c = cfg(); return c != null && c.minecraftFont.getValue(); }
-    private static boolean anyOn()      { return clickGuiOn() || hudOn() || globalOn(); }
+    private static boolean anyOn()      { return clickGuiOn() || hudOn(); }
 
     public static void markDirty() { dirty = true; }
 
@@ -57,7 +56,7 @@ public final class Fonts {
     }
 
     public static boolean drawOverrideActive() {
-        return (globalOn() || (hudPass && hudOn())) && renderer() != null;
+        return hudPass && hudOn() && renderer() != null;
     }
 
     public static void renderOverrideString(GuiGraphics graphics, String text, float x, float y, int color, boolean shadow) {
