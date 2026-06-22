@@ -4,9 +4,6 @@
 
 <h1 align="center">Homovore</h1>
 
-This is the last public version of Homovore, a Fabric utility mod made for Minecraft 1.21.11.
-It won't receive any updates.
-
 ### Join our discord - https://discord.gg/Ftf6RgvcGr
 
 <p align="center">
